@@ -70,7 +70,7 @@ function demoApi() {
 /* ───────── Supabase 모드 ───────── */
 async function liveApi() {
   const { createClient } = await import('./vendor/supabase-js-2.45.4.min.js');
-  const sb = createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true } });
+  const sb = createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'wordcard-auth' } }); // 같은 도메인의 다른 앱과 로그인 분리
   let { data: { session } } = await sb.auth.getSession();
   if (!session) {
     const r = await sb.auth.signInAnonymously(); // 이메일·실명 없이 익명 계정

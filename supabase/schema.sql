@@ -3,14 +3,12 @@
 -- 사전 설정: Authentication > Sign In / Providers > "Allow anonymous sign-ins" 켜기
 -- 원칙: 모든 테이블 RLS 사용. 친구 조회·요청·공유 집계는 security definer 함수로만 노출.
 
-create extension if not exists pgcrypto;
-
 -- 1) 프로필: 닉네임 + 친구 코드(헷갈리는 0/O/1/I 제외 6자리)
-create or replace function public.gen_friend_code() returns text language plpgsql as $$
-declare chars text := 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; c text; begin
+create or replace function public.gen_friend_code() returns text language plpgsql set search_path = public as $$
+declare chars text := 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; c text; b bytea; begin
   loop
-    c := '';
-    for i in 1..6 loop c := c || substr(chars, 1 + (get_byte(gen_random_bytes(1), 0) % 31), 1); end loop;
+    c := ''; b := uuid_send(gen_random_uuid()); -- PG13+ 내장 난수(확장 불필요)
+    for i in 0..5 loop c := c || substr(chars, 1 + (get_byte(b, i) % 31), 1); end loop;
     exit when not exists (select 1 from public.profiles where friend_code = c);
   end loop;
   return c;
@@ -170,16 +168,21 @@ end $$;
 drop trigger if exists meditations_limit on public.meditations;
 create trigger meditations_limit before insert on public.meditations for each row execute function public.limit_meditations();
 
--- 계정·서버 기록 전체 삭제(profiles → cascade)
+-- 말씀카드 서버 기록 전체 삭제(profiles → 묵상·친구·공유 기록 cascade)
+-- 같은 Supabase 프로젝트를 쓰는 다른 앱 데이터에 영향이 없도록 auth.users는 지우지 않음
 create or replace function public.delete_my_account() returns void
-language plpgsql security definer set search_path = public, auth as $$
+language plpgsql security definer set search_path = public as $$
 begin
   if auth.uid() is null then raise exception 'auth'; end if;
-  delete from auth.users where id = auth.uid();
+  delete from profiles where id = auth.uid();
 end $$;
 
 -- 함수 실행 권한: 로그인(익명 포함) 사용자만
-revoke execute on all functions in schema public from public, anon, authenticated;
+-- 같은 프로젝트의 다른 앱 함수에 영향이 없도록 말씀카드 함수만 대상으로 회수
+revoke execute on function public.gen_friend_code(), public.are_friends(uuid, uuid), public.limit_meditations(),
+  public.ensure_profile(), public.request_friend(text), public.my_friends(), public.accept_friend(uuid),
+  public.remove_friend(uuid), public.friend_meditations(date), public.record_share(date), public.share_count(date),
+  public.delete_my_account() from public, anon, authenticated;
 grant execute on function public.ensure_profile(), public.request_friend(text), public.my_friends(),
   public.accept_friend(uuid), public.remove_friend(uuid), public.friend_meditations(date),
   public.record_share(date), public.share_count(date), public.delete_my_account() to authenticated;
