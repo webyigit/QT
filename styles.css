@@ -104,6 +104,8 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;min-height:0;p
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .arch{background:radial-gradient(90% 70% at 50% 25%,rgba(255,226,160,.18),transparent 70%),linear-gradient(#262a45,#1f2238)}}
 .arch::after{content:"";position:absolute;inset:4px;border-radius:999px 999px 4px 4px;border:.6px solid var(--gold);opacity:.5}
 .arch svg{width:84%;height:84%}
+.arch svg.art-full{position:absolute;inset:0;width:100%;height:100%}
+.arch:has(.art-full)::after{border-color:#fff;opacity:.35;z-index:1}
 .verse{flex:1;display:flex;flex-direction:column;justify-content:center;text-align:center;width:100%;min-height:0}
 .verse.scroll{justify-content:flex-start;overflow-y:auto;overscroll-behavior:contain}
 .arch[hidden]{display:none}

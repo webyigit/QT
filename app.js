@@ -1,5 +1,5 @@
 import { VERSES } from './verses.js';
-import { ART, artSvg } from './art.js';
+import { ART, ART_STYLE, artSvg } from './art.js';
 import { store } from './store.js';
 import { createSocial, cleanName, normCode } from './social.js';
 
@@ -346,9 +346,15 @@ async function renderPNG(k) {
   const aw = 560, ah = 620, ax = (W - aw) / 2, ay = 200;
   g.beginPath(); g.moveTo(ax, ay + ah); g.lineTo(ax, ay + aw / 2); g.arc(W / 2, ay + aw / 2, aw / 2, Math.PI, 0); g.lineTo(ax + aw, ay + ah); g.closePath();
   g.fillStyle = 'rgba(255,240,205,.8)'; g.fill(); g.lineWidth = 3; g.stroke();
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="480" height="480" fill="none" stroke="#9a7536" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${ART[v.i] || ART.light}</svg>`;
+  const line = ART_STYLE === 'line';
+  const svg = line ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="480" height="480" fill="none" stroke="#9a7536" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${ART[v.i] || ART.light}</svg>`
+    : artSvg(v.i, '', ART_STYLE, `width="${aw}" height="${ah}"`);
   const img = new Image(); img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-  try { await img.decode(); g.drawImage(img, (W - 480) / 2, ay + 90, 480, 480); } catch {}
+  try {
+    await img.decode();
+    if (line) g.drawImage(img, (W - 480) / 2, ay + 90, 480, 480);
+    else { g.save(); g.beginPath(); g.moveTo(ax, ay + ah); g.lineTo(ax, ay + aw / 2); g.arc(W / 2, ay + aw / 2, aw / 2, Math.PI, 0); g.lineTo(ax + aw, ay + ah); g.closePath(); g.clip(); g.drawImage(img, ax, ay, aw, ah); g.restore(); g.stroke(); }
+  } catch {}
   // 본문
   g.fillStyle = '#2e2820';
   let size = v.t.length < 50 ? 60 : v.t.length < 90 ? 52 : 46;

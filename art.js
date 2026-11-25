@@ -1,4 +1,4 @@
-// 말씀 주제별 선화(線畫) 일러스트 — 직접 제작한 SVG. viewBox 0 0 120 120, stroke=currentColor
+// 말씀 주제별 일러스트 — 선화 원형(ART) 위에 그림체(스테인드글라스·수채화·목판화)를 입힘 — 직접 제작한 SVG. viewBox 0 0 120 120, stroke=currentColor
 const rays = (cx, cy, r1, r2, n, a0 = 0, a1 = 360) => {
   let s = '';
   for (let i = 0; i < n; i++) {
@@ -38,7 +38,106 @@ export const ART = {
   dove: `<path d="M24 70q20-2 32-14q-4-18 12-24q10-2 14 6l8 2l-8 4q-2 18-18 26q-14 8-40 0z"/><path d="M56 56q-16-24-28-30q4 16 14 26M60 54q4-26 22-36" opacity=".7"/><circle cx="76" cy="38" r="1.5"/><path d="M38 76l-8 10M46 76l-4 12" opacity=".6"/>${rays(60, 60, 44, 52, 9, 200, 340)}`,
 };
 export const THEMES_KO = { light: '빛', sunrise: '새 아침', rainbow: '언약', path: '길', shield: '방패', hands: '기도', olive: '평강', heart: '사랑', rock: '반석', cross: '십자가', tree: '나무', shepherd: '목자', water: '생수', door: '문', anchor: '소망', seed: '씨앗', wings: '날개', mountain: '산', lamp: '등불', bread: '떡', crown: '왕관', lily: '백합', sea: '바다', vine: '포도나무', dove: '비둘기' };
-export function artSvg(key, cls = '') {
-  const body = ART[key] || ART.light;
-  return `<svg class="${cls}" viewBox="0 0 120 120" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+
+// 주제별 색 (base: 주색, acc: 보조색, sky: 배경)
+export const PAL = {
+  light:['#e7b343','#fff1c4','#3d5a99'], sunrise:['#e88a3c','#ffd98a','#5a6fb0'], rainbow:['#c84b4b','#f2d27a','#4f7bbf'],
+  path:['#6f9a52','#f0d98c','#4b6aa8'], shield:['#3f62a8','#e8c45f','#7d2f3b'], hands:['#d9a441','#fbe6b0','#3f5899'],
+  olive:['#5f8a45','#c9d98a','#4a6ca6'], heart:['#c2414f','#f6c8b6','#3d5a99'], rock:['#8a7a68','#d8cbb2','#45629e'],
+  cross:['#b8862e','#ffe7a3','#7a2a34'], tree:['#4f8a48','#bfe08e','#4a6ca6'], shepherd:['#6f9a52','#f4ecd8','#4b6aa8'],
+  water:['#3c84b8','#bfe3f2','#2f4f8f'], door:['#8a5a34','#ffe3a0','#3d5a99'], anchor:['#2f5d8a','#e8c45f','#24406f'],
+  seed:['#5d9a4a','#e7d39a','#4a6ca6'], wings:['#6a8fc8','#f4f1e6','#2f4f8f'], mountain:['#6c6aa8','#e8dfc8','#3d5a99'],
+  lamp:['#d08a2e','#ffe08a','#2f3f78'], bread:['#c48a3e','#f3d79a','#5a3f8a'], crown:['#d4a52e','#fff0b8','#7a2a34'],
+  lily:['#f2ece0','#8fbf6a','#4a6ca6'], sea:['#2f78b0','#cfe8f2','#24406f'], vine:['#6b3f8a','#9cc46a','#3d5a99'],
+  dove:['#eef0f4','#e8c45f','#4a6ca6'],
+};
+// 닫힌 도형(z로 끝나는 path, circle, ellipse)에만 채움을 넣는다
+const fillClosed = (body, fill, op = 1) => body
+  .replace(/<path d="([^"]*?[zZ])"/g, `<path d="$1" fill="${fill}" fill-opacity="${op}"`)
+  .replace(/<(circle|ellipse) /g, `<$1 fill="${fill}" fill-opacity="${op}" `);
+// 결정적 의사난수
+const rnd = (s) => { let x = 0; for (const c of s) x = (x * 31 + c.charCodeAt(0)) >>> 0; return () => ((x = (x * 1664525 + 1013904223) >>> 0) / 4294967296); };
+const mix = (h, k) => { // 밝기 조절
+  const n = parseInt(h.slice(1), 16); let r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  const f = (c) => Math.max(0, Math.min(255, Math.round(k >= 0 ? c + (255 - c) * k : c * (1 + k))));
+  return `#${[f(r), f(g), f(b)].map((c) => c.toString(16).padStart(2, '0')).join('')}`;
+};
+
+// ── 1) 스테인드글라스 ──
+function glass(key) {
+  const [base, acc, sky] = PAL[key] || PAL.light, R = rnd(key), cx = 60, cy = 50;
+  let panes = '';
+  const rings = [0, 22, 40, 62, 95];
+  for (let ri = 1; ri < rings.length; ri++) {
+    const n = [0, 6, 10, 14, 18][ri], off = R() * 20;
+    for (let i = 0; i < n; i++) {
+      const a0 = ((i / n) * 360 + off) * Math.PI / 180, a1 = (((i + 1) / n) * 360 + off) * Math.PI / 180;
+      const r0 = rings[ri - 1], r1 = rings[ri];
+      const P = (r, a) => `${(cx + r * Math.cos(a)).toFixed(1)} ${(cy + r * Math.sin(a)).toFixed(1)}`;
+      const t = R();
+      const col = ri === 1 ? mix(acc, 0.15 + t * 0.3) : t < 0.6 ? mix(sky, -0.1 + t * 0.45) : t < 0.85 ? mix(base, -0.05 + t * 0.2) : mix(acc, t * 0.2);
+      panes += `<path d="M${P(r0, a0)}L${P(r1, a0)}L${P(r1, a1)}L${P(r0, a1)}Z" fill="${col}"/>`;
+    }
+  }
+  const body = fillClosed(ART[key] || ART.light, mix(base, 0.05));
+  return `<defs><radialGradient id="gg-${key}" cx="50%" cy="38%" r="60%"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
+  <g stroke="#2a2118" stroke-width="1.3" stroke-linejoin="round">${panes}</g>
+  <rect x="-20" y="-20" width="160" height="160" fill="url(#gg-${key})"/>
+  <g fill="none" stroke="#2a2118" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round">${body}</g>
+  <g fill="none" stroke="${mix(acc, 0.35)}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${fillClosed(ART[key] || ART.light, mix(base, 0.12))}</g>`;
+}
+
+// ── 2) 수채화 ──
+function water(key) {
+  const [base, acc, sky] = PAL[key] || PAL.light, R = rnd(key);
+  const id = `wc-${key}`;
+  let blobs = '';
+  for (let i = 0; i < 5; i++) blobs += `<circle cx="${(10 + R() * 100).toFixed(0)}" cy="${(5 + R() * 45).toFixed(0)}" r="${(18 + R() * 22).toFixed(0)}" fill="${i % 2 ? '#a9c9ea' : mix(sky, 0.55 + R() * 0.2)}" opacity=".6"/>`;
+  blobs += `<ellipse cx="60" cy="112" rx="80" ry="22" fill="${mix(base, 0.45)}" opacity=".6"/>`;
+  blobs += `<circle cx="60" cy="50" r="30" fill="${mix(acc, 0.1)}" opacity=".7"/>`;
+  const b = ART[key] || ART.light;
+  return `<defs>
+  <filter id="${id}-w" x="-20%" y="-20%" width="140%" height="140%"><feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="3" seed="${Math.floor(R() * 90)}"/><feDisplacementMap in="SourceGraphic" scale="12"/><feGaussianBlur stdDeviation=".9"/></filter>
+  <filter id="${id}-p" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2"/><feDisplacementMap in="SourceGraphic" scale="1.4"/></filter>
+  <filter id="${id}-g"><feTurbulence type="fractalNoise" baseFrequency=".6" numOctaves="2" result="n"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 .55  0 0 0 0 .45  0 0 0 0 .3  0 0 0 -.9 .55"/><feComposite in2="SourceGraphic" operator="in"/></filter>
+  </defs>
+  <rect x="-20" y="-20" width="160" height="160" fill="#fbf6ea"/>
+  <g filter="url(#${id}-w)">${blobs}</g>
+  <g filter="url(#${id}-w)" fill="none" stroke="${base}" stroke-width="4" stroke-opacity=".4" stroke-linecap="round" stroke-linejoin="round" transform="translate(1.5 1.5)">${fillClosed(b, base, 0.7)}</g>
+  <g filter="url(#${id}-p)" fill="none" stroke="#5b4630" stroke-width="1.15" stroke-linecap="round" stroke-linejoin="round" opacity=".85">${b}</g>
+  <rect x="-20" y="-20" width="160" height="160" filter="url(#${id}-g)" opacity=".35"/>`;
+}
+
+// ── 3) 목판화 ──
+function wood(key) {
+  const [base] = PAL[key] || PAL.light, R = rnd(key), id = `wd-${key}`;
+  const ink = '#2a211a', paper = '#f3e7c9';
+  let carve = '';
+  // 하늘: 위에서 퍼지는 새긴 빛줄기 + 가로 결
+  for (let i = 0; i < 26; i++) { const a = (200 + i * 140 / 25) * Math.PI / 180; carve += `M60 46L${(60 + 120 * Math.cos(a)).toFixed(1)} ${(46 + 120 * Math.sin(a)).toFixed(1)}`; }
+  let grain = '';
+  for (let y = 70; y < 124; y += 4.5) { let d = `M-5 ${y}`; for (let x = -5; x < 130; x += 15) d += `q7.5 ${(R() * 3 - 1.5).toFixed(1)} 15 0`; grain += d; }
+  const b = ART[key] || ART.light;
+  return `<defs><filter id="${id}-r" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".7" numOctaves="2" seed="3"/><feDisplacementMap in="SourceGraphic" scale="1.8"/></filter>
+  <radialGradient id="${id}-h" cx="50%" cy="40%" r="45%"><stop offset="0" stop-color="${mix(base, 0.35)}" stop-opacity=".55"/><stop offset="1" stop-color="${base}" stop-opacity="0"/></radialGradient></defs>
+  <rect x="-20" y="-20" width="160" height="160" fill="${ink}"/>
+  <rect x="-20" y="-20" width="160" height="160" fill="url(#${id}-h)"/>
+  <g filter="url(#${id}-r)" fill="none" stroke="${paper}" stroke-linecap="round">
+    <path d="${carve}" stroke-width=".7" opacity=".35"/>
+    <path d="${grain}" stroke-width=".9" opacity=".3"/>
+    <g stroke-width="3" stroke-linejoin="round">${fillClosed(b, paper, 1)}</g>
+  </g>
+  <g fill="none" stroke="${ink}" stroke-width=".9" stroke-linecap="round" opacity=".55">${b.replace(/fill="[^"]*"/g, '')}</g>`;
+}
+
+// 카드 그림체: 'glass'(스테인드글라스) | 'water'(수채화) | 'wood'(목판화) | 'line'(기존 선화)
+export const ART_STYLE = 'glass';
+const STYLES = { glass, water, wood };
+export function artSvg(key, cls = '', style = ART_STYLE, size = '') {
+  if (!STYLES[style]) {
+    const body = ART[key] || ART.light;
+    return `<svg class="${cls}" viewBox="0 0 120 120" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+  }
+  const k = ART[key] ? key : 'light';
+  return `<svg class="${cls} art-full" xmlns="http://www.w3.org/2000/svg" ${size} viewBox="0 0 120 120" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${STYLES[style](k)}</svg>`;
 }
